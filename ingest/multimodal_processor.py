@@ -276,19 +276,20 @@ class MultimodalProcessor:
             
         return content
         
-    def _process_text(self, file_path: Path) -> Dict[str, Any]:
+    def _process_text(self, file_path: Path, progress_callback: Optional[Callable[[float], None]] = None) -> Dict[str, Any]:
         """Process plain text files."""
         content = {
             'text_chunks': [],
             'metadata': {}
         }
-        
+        if progress_callback:
+            progress_callback(0.0)
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
-            
         content['text_chunks'] = self._create_semantic_chunks(text)
         content['metadata']['size'] = len(text)
-        
+        if progress_callback:
+            progress_callback(1.0)
         return content
         
     def _create_semantic_chunks(self, text: str) -> List[str]:
@@ -317,11 +318,8 @@ class MultimodalProcessor:
             # Start new chunk if:
             # 1. Current would exceed limit
             # 2. Sentence crosses paragraph boundary
-            # 3. Current chunk is not empty and sentence starts with a new paragraph
             if (current_length + sent_length > self.chunk_size or 
-                crosses_boundary or 
-                (current_chunk and sent.start_char > current_chunk[-1].end_char + 1)):
-                
+                crosses_boundary):
                 if current_chunk:
                     chunks.append(' '.join(current_chunk))
                 current_chunk = [sent_text]
